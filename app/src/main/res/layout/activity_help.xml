@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent" android:layout_height="match_parent">
+
+    <TextView
+        android:id="@+id/legend_title"
+        android:layout_width="match_parent"
+        android:layout_height="51dp"
+        android:background="@color/color_green"
+        android:gravity="center"
+        android:text="Legend"
+        android:textSize="24sp" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="678dp"
+        android:layout_below="@+id/legend_title"
+        android:layout_marginTop="2dp">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <ImageView
+                android:id="@+id/legend_red_image"
+                android:layout_width="70dp"
+                android:layout_height="100dp"
+                android:layout_alignParentStart="true"
+                android:layout_alignParentLeft="true"
+                android:layout_marginStart="20dp"
+                android:layout_marginLeft="20dp"
+                android:layout_marginTop="20dp"
+                app:srcCompat="@color/color_red" />
+
+            <ImageView
+                android:id="@+id/legend_orange_image"
+                android:layout_width="70dp"
+                android:layout_height="100dp"
+                android:layout_below="@+id/legend_red_image"
+                android:layout_alignParentStart="true"
+                android:layout_alignParentLeft="true"
+                android:layout_marginStart="20dp"
+                android:layout_marginLeft="20dp"
+                android:layout_marginTop="20dp"
+                app:srcCompat="@color/color_orange" />
+
+            <ImageView
+                android:id="@+id/legend_yellow_image"
+                android:layout_width="70dp"
+                android:layout_height="100dp"
+                android:layout_below="@+id/legend_orange_image"
+                android:layout_alignParentStart="true"
+                android:layout_alignParentLeft="true"
+                android:layout_marginStart="20dp"
+                android:layout_marginLeft="20dp"
+                android:layout_marginTop="20dp"
+                app:srcCompat="@color/color_yellow" />
+
+            <ImageView
+                android:id="@+id/legend_blue_image"
+                android:layout_width="70dp"
+                android:layout_height="100dp"
+                android:layout_below="@+id/legend_yellow_image"
+                android:layout_alignParentStart="true"
+                android:layout_alignParentLeft="true"
+                android:layout_marginStart="20dp"
+                android:layout_marginLeft="20dp"
+                android:layout_marginTop="20dp"
+                app:srcCompat="@color/color_blue" />
+
+            <ImageView
+                android:id="@+id/legend_green_image"
+                android:layout_width="70dp"
+                android:layout_height="100dp"
+                android:layout_below="@+id/legend_blue_image"
+                android:layout_alignParentStart="true"
+                android:layout_alignParentLeft="true"
+                android:layout_marginStart="20dp"
+                android:layout_marginLeft="20dp"
+                android:layout_marginTop="20dp"
+                app:srcCompat="@color/color_green" />
+
+            <TextView
+                android:id="@+id/legend_red_text"
+                android:layout_width="275dp"
+                android:layout_height="100dp"
+                android:layout_marginStart="20dp"
+                android:layout_marginLeft="20dp"
+                android:layout_marginTop="20dp"
+                android:layout_toEndOf="@+id/legend_red_image"
+                android:layout_toRightOf="@+id/legend_red_image"
+                android:text="Disaster!\nHole already guessed"
+                android:textSize="24sp" />
+
+            <TextView
+                android:id="@+id/legend_orange_text"
+                android:layout_width="275dp"
+                android:layout_height="100dp"
+                android:layout_below="@+id/legend_red_text"
+                android:layout_marginStart="20dp"
+                android:layout_marginLeft="20dp"
+                android:layout_marginTop="20dp"
+                android:layout_toEndOf="@+id/legend_orange_image"
+                android:layout_toRightOf="@+id/legend_orange_image"
+                android:text="Complete Miss!\nGopher not spotted"
+                android:textSize="24sp" />
+
+            <TextView
+                android:id="@+id/legend_yellow_text"
+                android:layout_width="275dp"
+                android:layout_height="100dp"
+                android:layout_below="@+id/legend_orange_text"
+                android:layout_marginStart="20dp"
+                android:layout_marginLeft="20dp"
+                android:layout_marginTop="20dp"
+                android:layout_toEndOf="@+id/legend_yellow_image"
+                android:layout_toRightOf="@+id/legend_yellow_image"
+                android:text="Close Guess!\nGopher is 2 holes away"
+                android:textSize="24sp" />
+
+            <TextView
+                android:id="@+id/legend_blue_text"
+                android:layout_width="275dp"
+                android:layout_height="100dp"
+                android:layout_below="@+id/legend_yellow_text"
+                android:layout_marginStart="20dp"
+                android:layout_marginLeft="20dp"
+                android:layout_marginTop="20dp"
+                android:layout_toEndOf="@+id/legend_blue_image"
+                android:layout_toRightOf="@+id/legend_blue_image"
+                android:text="Near Miss!\nGopher is 1 hole away"
+                android:textSize="24sp" />
+
+            <TextView
+                android:id="@+id/legend_green_text"
+                android:layout_width="275dp"
+                android:layout_height="100dp"
+                android:layout_below="@+id/legend_blue_text"
+                android:layout_marginStart="20dp"
+                android:layout_marginLeft="20dp"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="20dp"
+                android:layout_toEndOf="@+id/legend_green_image"
+                android:layout_toRightOf="@+id/legend_green_image"
+                android:text="Success!\nGopher spotted!"
+                android:textSize="24sp" />
+        </RelativeLayout>
+    </ScrollView>
+
+
+
+
+</RelativeLayout>
