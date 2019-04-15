@@ -8,7 +8,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.widget.TextView;
 
 public class LogActivity extends AppCompatActivity{
-    protected TextView tv_log;
+    protected static TextView tv_log;
 
 
     public void updateLog() {

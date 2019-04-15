@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
+import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
@@ -350,13 +351,17 @@ public class MainActivity extends AppCompatActivity {
             Message m;
             switch(what) {
                 case UI_UPDATE_LOG:
-
+                    if(LogActivity.tv_log != null)
+                    {
+                        LogActivity.tv_log.setText(text_log);
+                    }
                     break;
                 case UI_STOP: //nothing, useless
                     break;
                 case UI_CHECK_WINNER: //checks if theres a winner every turn. not really necessary
                     if(WINNER_FOUND)
                     {
+                        currentTurn--; //goes to previous turn to correctly determine winner
                         if(currentTurn % 2 == 1) //player 1
                         {
                             Log.i(TAG, "Player 1 Won!");
@@ -414,126 +419,138 @@ public class MainActivity extends AppCompatActivity {
             handlerThread = ht;
         }
 
-        private void makeMove()
+        private synchronized void makeMove()
         {
-
-            //default
-            int x;
-            int y;
-            String messageNextMove = "NULL";
-            String messageMoveStatus = "NULL";
-            String current_player = "(P1)";
-            Log.i(TAG,"Turn: " + currentTurn + " (P1)");
-
-            Log.i(TAG, "Current Response: " + RESPONSE_CURRENT);
-
-            if(RESPONSE_CURRENT == RESPONSE_SUCCESS) //should not happen
-            {
-                Log.i(TAG, "Gopher already found");
-                messageNextMove = "Gopher found!";
-                tv_console.setText("Turn: " + currentTurn + current_player + "\nMove: " + messageNextMove);
-                Message m;
-                m = mainThread.obtainMessage(UI_CHECK_WINNER);
-                mainThread.sendMessage(m);
-                return;
-            }
-            else if(RESPONSE_CURRENT == RESPONSE_NEAR_MISS) //next move will be around the proximities of 1 space
-            {
-                Log.i(TAG, "Gopher near miss");
-                messageNextMove = "1 Spot from last move";
-                Random r = new Random();
-                x = r.nextInt((GOPHER_LOCATION_X + 2) - (GOPHER_LOCATION_X -1)) + (GOPHER_LOCATION_X-1);
-                y = r.nextInt((GOPHER_LOCATION_Y + 2) - (GOPHER_LOCATION_Y -1)) + (GOPHER_LOCATION_Y-1);
-            }
-            else if(RESPONSE_CURRENT == RESPONSE_CLOSE_GUESS) //next move will be around the proximities of 2 spaces
-            {
-                Log.i(TAG, "Gopher close guess");
-                messageNextMove = "2 Spots from last move";
-                Random r = new Random();
-                x = r.nextInt((GOPHER_LOCATION_X + 2) - (GOPHER_LOCATION_X -1)) + (GOPHER_LOCATION_X-1);
-                y = r.nextInt((GOPHER_LOCATION_Y + 2) - (GOPHER_LOCATION_Y -1)) + (GOPHER_LOCATION_Y-1);
-            }
-            else //complete misses, disasters, or start of game makes a random move
-            {
-                Log.i(TAG, "Making a random move");
-                messageNextMove = "Random";
-                Random r = new Random();
-                x = r.nextInt(BOARD_WIDTH) + 1; //ranges from 1-10
-                y = r.nextInt(BOARD_HEIGHT) + 1; //ranges from 1-10
-            }
-
-            //making sure the coordinates don't go out of bounds
-            if(x < 0)
-                x = 0;
-            if(x > BOARD_WIDTH)
-                x = BOARD_WIDTH;
-            if(y < 0)
-                y = 0;
-            if(y > BOARD_HEIGHT)
-                y = BOARD_HEIGHT;
-
-            //X AND Y DECIDED AT THIS POINT//
-            final ImageView iv = imageBoard[x][y]; //gets image at board
-
-            Log.i(TAG, "Current Gopher Location: " + GOPHER_LOCATION_X + ", " + GOPHER_LOCATION_Y);
-            Log.i(TAG, "Moving to " + x + ", " + y);
-
-            if(board[x][y] == RESPONSE_SUCCESS)
-            {
-                Log.i(TAG, "Current move was a SUCCESS");
-                messageMoveStatus = "SUCCESS";
-                RESPONSE_CURRENT = RESPONSE_SUCCESS;
-                WINNER_FOUND = true;
-            }
-            else if(board[x][y] == RESPONSE_NEAR_MISS)
-            {
-                Log.i(TAG, "Current move was a NEAR MISS");
-                messageMoveStatus = "NEAR MISS";
-                RESPONSE_CURRENT = RESPONSE_NEAR_MISS;
-            }
-            else if(board[x][y] == RESPONSE_CLOSE_GUESS)
-            {
-                Log.i(TAG, "Current move was a CLOSE GUESS");
-                messageMoveStatus = "CLOSE GUESS";
-                RESPONSE_CURRENT = RESPONSE_CLOSE_GUESS;
-            }
-            else if(board[x][y] == RESPONSE_COMPLETE_MISS)
-            {
-                Log.i(TAG, "Current move was a COMPLETE MISS");
-                messageMoveStatus = "COMPLETE MISS";
-                RESPONSE_CURRENT = RESPONSE_COMPLETE_MISS;
-            }
-            else if(board[x][y] == RESPONSE_DISASTER)
-            {
-                Log.i(TAG, "Current move was a DISASTER");
-                messageMoveStatus = "DISASTER";
-                RESPONSE_CURRENT = RESPONSE_DISASTER;
-            }
-            board[x][y] = RESPONSE_DISASTER; //set to already clicked
-            tv_console.setText("Turn: " + currentTurn + current_player + "\nMove: " + messageNextMove);
-            text_log = text_log + "\nTurn: " + currentTurn + current_player + "\nMove: " + messageNextMove + "\nStatus: " + messageMoveStatus + "\n";
-            Message m;
-            m = mainThread.obtainMessage(UI_UPDATE_LOG);
-            mainThread.sendMessage(m);
-
-            //depending on the state of the board, set the correct color
-            runOnUiThread(new Runnable() {
+            AsyncTask.execute(new Runnable() {
                 @Override
                 public void run() {
-                    iv.setImageResource(cellImages.get(RESPONSE_CURRENT));
+                    int x;
+                    int y;
+                    String current_player = "(P1)";
+                    String messageTurnPlayer = "Turn: " + currentTurn + current_player + "\n";
+                    String messageNextMove = "NULL";
+                    String messageMoveStatus = "NULL";
+                    Log.i(TAG,"Turn: " + currentTurn + current_player);
+
+                    Log.i(TAG, "Current Response: " + RESPONSE_CURRENT);
+
+                    if(RESPONSE_CURRENT == RESPONSE_SUCCESS) //should not happen
+                    {
+                        Log.i(TAG, "Gopher already found");
+                        tv_console.setText("Turn: " + currentTurn + current_player + "\nWinner!");
+                        return;
+                    }
+                    else if(RESPONSE_CURRENT == RESPONSE_NEAR_MISS) //next move will be around the proximities of 1 space
+                    {
+                        Log.i(TAG, "Gopher near miss");
+                        messageNextMove = "Move Used: 1 Spot from last move\n";
+                        Random r = new Random();
+                        x = r.nextInt((GOPHER_LOCATION_X + 2) - (GOPHER_LOCATION_X -1)) + (GOPHER_LOCATION_X-1);
+                        y = r.nextInt((GOPHER_LOCATION_Y + 2) - (GOPHER_LOCATION_Y -1)) + (GOPHER_LOCATION_Y-1);
+                    }
+                    else if(RESPONSE_CURRENT == RESPONSE_CLOSE_GUESS) //next move will be around the proximities of 2 spaces
+                    {
+                        Log.i(TAG, "Gopher close guess");
+                        messageNextMove = "Move Used: 2 Spots from last move\n";
+                        Random r = new Random();
+                        x = r.nextInt((GOPHER_LOCATION_X + 2) - (GOPHER_LOCATION_X -1)) + (GOPHER_LOCATION_X-1);
+                        y = r.nextInt((GOPHER_LOCATION_Y + 2) - (GOPHER_LOCATION_Y -1)) + (GOPHER_LOCATION_Y-1);
+                    }
+                    else //complete misses, disasters, or start of game makes a random move
+                    {
+                        Log.i(TAG, "Making a random move");
+                        messageNextMove = "Move Used: Random\n";
+                        Random r = new Random();
+                        x = r.nextInt(BOARD_WIDTH) + 1; //ranges from 1-10
+                        y = r.nextInt(BOARD_HEIGHT) + 1; //ranges from 1-10
+                    }
+
+                    //making sure the coordinates don't go out of bounds
+                    if(x < 0)
+                        x = 0;
+                    if(x > BOARD_WIDTH)
+                        x = BOARD_WIDTH;
+                    if(y < 0)
+                        y = 0;
+                    if(y > BOARD_HEIGHT)
+                        y = BOARD_HEIGHT;
+
+                    //X AND Y DECIDED AT THIS POINT//
+                    final ImageView iv = imageBoard[x][y]; //gets image at board
+
+                    Log.i(TAG, "Current Gopher Location: " + GOPHER_LOCATION_X + ", " + GOPHER_LOCATION_Y);
+                    Log.i(TAG, "Moving to " + x + ", " + y);
+
+                    if(board[x][y] == RESPONSE_SUCCESS)
+                    {
+                        Log.i(TAG, "Current move was a SUCCESS");
+                        messageMoveStatus = "Move Status: SUCCESS\n";
+                        RESPONSE_CURRENT = RESPONSE_SUCCESS;
+                        WINNER_FOUND = true;
+                    }
+                    else if(board[x][y] == RESPONSE_NEAR_MISS)
+                    {
+                        Log.i(TAG, "Current move was a NEAR MISS");
+                        messageMoveStatus = "Move Status: NEAR MISS\n";
+                        RESPONSE_CURRENT = RESPONSE_NEAR_MISS;
+                    }
+                    else if(board[x][y] == RESPONSE_CLOSE_GUESS)
+                    {
+                        Log.i(TAG, "Current move was a CLOSE GUESS");
+                        messageMoveStatus = "Move Status: CLOSE GUESS\n";
+                        RESPONSE_CURRENT = RESPONSE_CLOSE_GUESS;
+                    }
+                    else if(board[x][y] == RESPONSE_COMPLETE_MISS)
+                    {
+                        Log.i(TAG, "Current move was a COMPLETE MISS");
+                        messageMoveStatus = "Move Status: COMPLETE MISS\n";
+                        RESPONSE_CURRENT = RESPONSE_COMPLETE_MISS;
+                    }
+                    else if(board[x][y] == RESPONSE_DISASTER)
+                    {
+                        Log.i(TAG, "Current move was a DISASTER");
+                        messageMoveStatus = "Move Status: DISASTER\n";
+                        RESPONSE_CURRENT = RESPONSE_DISASTER;
+                    }
+                    board[x][y] = RESPONSE_DISASTER; //set to already clicked
+
+                    if(messageMoveStatus.equals("NULL"))
+                    {
+                        currentTurn--;
+                    }
+                    final String messageLog = messageTurnPlayer + messageNextMove + messageMoveStatus + "\n";
+                    //depending on the state of the board, set the correct color
+                    mainThread.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            tv_console.setText(messageLog);
+                            text_log = text_log + messageLog;
+                            Log.i(TAG, text_log);
+                            if(iv != null)
+                            {
+                                iv.setImageResource(cellImages.get(RESPONSE_CURRENT));
+                            }
+                            else
+                            {
+                                Log.i(TAG, "Something went wrong when setting image");
+                            }
+                        }
+                    });
+
+                    //If gopher hasn't been spotted yet, change the cell back to default
+                    mainThread.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (iv != null)
+                            {
+                                iv.setImageResource(cellImages.get(RESPONSE_NULL));
+                                Log.i(TAG, "Something went wrong when setting image to default");
+                            }
+                        }
+                    }, 1500);
+                    currentTurn++;
                 }
             });
-
-            if(RESPONSE_CURRENT != RESPONSE_SUCCESS) //If gopher hasn't been spotted yet, change the cell back to default
-            {
-                mainThread.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        iv.setImageResource(cellImages.get(RESPONSE_NULL));
-                    }
-                }, 1500);
-                currentTurn++; //goes on to next turn
-            }
         }
 
         @Override
@@ -559,15 +576,18 @@ public class MainActivity extends AppCompatActivity {
                                     try{ Thread.sleep(MOVE_DELAY); }
                                     catch (InterruptedException e) { System.out.println("Thread interrupted!"); }
 
+                                    Message m;
                                     if(!WINNER_FOUND) //if winner hasnt been found yet, make the next move
                                     {
                                         makeMove();
                                         printBoard();
+                                        m = mainThread.obtainMessage(UI_UPDATE_LOG);
+                                        mainThread.sendMessage(m);
+
+                                        m = handlerThread.obtainMessage(UI_CHECK_WINNER); //after making the move, check to see if theres a winner
+                                        handlerThread.sendMessage(m);
                                     }
 
-                                    Message m;
-                                    m = handlerThread.obtainMessage(UI_CHECK_WINNER); //after making the move, check to see if theres a winner
-                                    handlerThread.sendMessage(m);
                                 }
                             });
                             break;
@@ -598,124 +618,139 @@ public class MainActivity extends AppCompatActivity {
             handlerThread = ht;
         }
 
-        private void makeMove()
+        private synchronized void makeMove()
         {
-
-            //default
-            int x;
-            int y;
-            String messageNextMove = "NULL";
-            String messageMoveStatus = "NULL";
-            String current_player = "(P2)";
-
-            Log.i(TAG, "Current Response: " + RESPONSE_CURRENT);
-
-            if(RESPONSE_CURRENT == RESPONSE_SUCCESS) //should not happen
-            {
-                Log.i(TAG, "Gopher already found");
-                messageNextMove = "Gopher found!";
-                messageMoveStatus = "Winner!";
-                tv_console.setText("Turn: " + currentTurn + current_player + "\nMove: " + messageNextMove);
-                Message m;
-                m = mainThread.obtainMessage(UI_CHECK_WINNER);
-                mainThread.sendMessage(m);
-                return;
-            }
-            else if(RESPONSE_CURRENT == RESPONSE_NEAR_MISS) //next move will be around the proximities of 1 space
-            {
-                Log.i(TAG, "Gopher near miss");
-                messageNextMove = "1 Spot from last move";
-                Random r = new Random();
-                x = r.nextInt((GOPHER_LOCATION_X + 2) - (GOPHER_LOCATION_X -1)) + (GOPHER_LOCATION_X-1);
-                y = r.nextInt((GOPHER_LOCATION_Y + 2) - (GOPHER_LOCATION_Y -1)) + (GOPHER_LOCATION_Y-1);
-            }
-            else if(RESPONSE_CURRENT == RESPONSE_CLOSE_GUESS) //next move will be around the proximities of 2 spaces
-            {
-                Log.i(TAG, "Gopher near miss");
-                messageNextMove = "2 Spots from last move";
-                Random r = new Random();
-                x = r.nextInt((GOPHER_LOCATION_X + 2) - (GOPHER_LOCATION_X -1)) + (GOPHER_LOCATION_X-1);
-                y = r.nextInt((GOPHER_LOCATION_Y + 2) - (GOPHER_LOCATION_Y -1)) + (GOPHER_LOCATION_Y-1);
-            }
-            else //complete misses, disasters, or start of game makes a random move
-            {
-                Log.i(TAG, "Making a random move");
-                messageNextMove = "Random";
-                Random r = new Random();
-                x = r.nextInt(BOARD_WIDTH) + 1; //ranges from 1-10
-                y = r.nextInt(BOARD_HEIGHT) + 1; //ranges from 1-10
-            }
-
-            //making sure the coordinates don't go out of bounds
-            if(x < 0)
-                x = 0;
-            if(x > BOARD_WIDTH)
-                x = BOARD_WIDTH;
-            if(y < 0)
-                y = 0;
-            if(y > BOARD_HEIGHT)
-                y = BOARD_HEIGHT;
-
-            //X AND Y DECIDED AT THIS POINT//
-            final ImageView iv = imageBoard[x][y]; //gets image at board
-
-            Log.i(TAG, "Current Gopher Location: " + GOPHER_LOCATION_X + ", " + GOPHER_LOCATION_Y);
-            Log.i(TAG, "Moving to " + x + ", " + y);
-
-            if(board[x][y] == RESPONSE_SUCCESS)
-            {
-                Log.i(TAG, "Current move was a SUCCESS");
-                messageMoveStatus = "SUCCESS";
-                RESPONSE_CURRENT = RESPONSE_SUCCESS;
-                WINNER_FOUND = true;
-            }
-            else if(board[x][y] == RESPONSE_NEAR_MISS)
-            {
-                Log.i(TAG, "Current move was a NEAR MISS");
-                messageMoveStatus = "NEAR MISS";
-                RESPONSE_CURRENT = RESPONSE_NEAR_MISS;
-            }
-            else if(board[x][y] == RESPONSE_CLOSE_GUESS)
-            {
-                Log.i(TAG, "Current move was a CLOSE GUESS");
-                messageMoveStatus = "CLOSE GUESS";
-                RESPONSE_CURRENT = RESPONSE_CLOSE_GUESS;
-            }
-            else if(board[x][y] == RESPONSE_COMPLETE_MISS)
-            {
-                Log.i(TAG, "Current move was a COMPLETE MISS");
-                messageMoveStatus = "COMPLETE MISS";
-                RESPONSE_CURRENT = RESPONSE_COMPLETE_MISS;
-            }
-            else if(board[x][y] == RESPONSE_DISASTER)
-            {
-                Log.i(TAG, "Current move was a DISASTER");
-                messageMoveStatus = "DISASTER";
-                RESPONSE_CURRENT = RESPONSE_DISASTER;
-            }
-            board[x][y] = RESPONSE_DISASTER; //set to already clicked
-            tv_console.setText("Turn: " + currentTurn + current_player + "\nMove: " + messageNextMove);
-            text_log = text_log + "\nTurn: " + currentTurn + current_player + "\nMove: " + messageNextMove + "\nStatus: " + messageMoveStatus + "\n";
-            Message m;
-            m = mainThread.obtainMessage(UI_UPDATE_LOG);
-            mainThread.sendMessage(m);
-
-            //depending on the state of the board, set the correct color
-            runOnUiThread(new Runnable() {
+            AsyncTask.execute(new Runnable() {
                 @Override
                 public void run() {
-                    iv.setImageResource(cellImages.get(RESPONSE_CURRENT));
+                    int x;
+                    int y;
+                    String current_player = "(P2)";
+                    String messageTurnPlayer = "Turn: " + currentTurn + current_player + "\n";
+                    String messageNextMove = "NULL";
+                    String messageMoveStatus = "NULL";
+                    Log.i(TAG,"Turn: " + currentTurn + current_player);
+
+                    Log.i(TAG, "Current Response: " + RESPONSE_CURRENT);
+
+                    if(RESPONSE_CURRENT == RESPONSE_SUCCESS) //should not happen
+                    {
+                        Log.i(TAG, "Gopher already found");
+                        tv_console.setText("Turn: " + currentTurn + current_player + "\nWinner!");
+                        return;
+                    }
+                    else if(RESPONSE_CURRENT == RESPONSE_NEAR_MISS) //next move will be around the proximities of 1 space
+                    {
+                        Log.i(TAG, "Gopher near miss");
+                        messageNextMove = "Move Used: 1 Spot from last move\n";
+                        Random r = new Random();
+                        x = r.nextInt((GOPHER_LOCATION_X + 2) - (GOPHER_LOCATION_X -1)) + (GOPHER_LOCATION_X-1);
+                        y = r.nextInt((GOPHER_LOCATION_Y + 2) - (GOPHER_LOCATION_Y -1)) + (GOPHER_LOCATION_Y-1);
+                    }
+                    else if(RESPONSE_CURRENT == RESPONSE_CLOSE_GUESS) //next move will be around the proximities of 2 spaces
+                    {
+                        Log.i(TAG, "Gopher close guess");
+                        messageNextMove = "Move Used: 2 Spots from last move\n";
+                        Random r = new Random();
+                        x = r.nextInt((GOPHER_LOCATION_X + 2) - (GOPHER_LOCATION_X -1)) + (GOPHER_LOCATION_X-1);
+                        y = r.nextInt((GOPHER_LOCATION_Y + 2) - (GOPHER_LOCATION_Y -1)) + (GOPHER_LOCATION_Y-1);
+                    }
+                    else //complete misses, disasters, or start of game makes a random move
+                    {
+                        Log.i(TAG, "Making a random move");
+                        messageNextMove = "Move Used: Random\n";
+                        Random r = new Random();
+                        x = r.nextInt(BOARD_WIDTH) + 1; //ranges from 1-10
+                        y = r.nextInt(BOARD_HEIGHT) + 1; //ranges from 1-10
+                    }
+
+                    //making sure the coordinates don't go out of bounds
+                    if(x < 0)
+                        x = 0;
+                    if(x > BOARD_WIDTH)
+                        x = BOARD_WIDTH;
+                    if(y < 0)
+                        y = 0;
+                    if(y > BOARD_HEIGHT)
+                        y = BOARD_HEIGHT;
+
+                    //X AND Y DECIDED AT THIS POINT//
+                    final ImageView iv = imageBoard[x][y]; //gets image at board
+
+                    Log.i(TAG, "Current Gopher Location: " + GOPHER_LOCATION_X + ", " + GOPHER_LOCATION_Y);
+                    Log.i(TAG, "Moving to " + x + ", " + y);
+
+                    if(board[x][y] == RESPONSE_SUCCESS)
+                    {
+                        Log.i(TAG, "Current move was a SUCCESS");
+                        messageMoveStatus = "Move Status: SUCCESS\n";
+                        RESPONSE_CURRENT = RESPONSE_SUCCESS;
+                        WINNER_FOUND = true;
+                    }
+                    else if(board[x][y] == RESPONSE_NEAR_MISS)
+                    {
+                        Log.i(TAG, "Current move was a NEAR MISS");
+                        messageMoveStatus = "Move Status: NEAR MISS\n";
+                        RESPONSE_CURRENT = RESPONSE_NEAR_MISS;
+                    }
+                    else if(board[x][y] == RESPONSE_CLOSE_GUESS)
+                    {
+                        Log.i(TAG, "Current move was a CLOSE GUESS");
+                        messageMoveStatus = "Move Status: CLOSE GUESS\n";
+                        RESPONSE_CURRENT = RESPONSE_CLOSE_GUESS;
+                    }
+                    else if(board[x][y] == RESPONSE_COMPLETE_MISS)
+                    {
+                        Log.i(TAG, "Current move was a COMPLETE MISS");
+                        messageMoveStatus = "Move Status: COMPLETE MISS\n";
+                        RESPONSE_CURRENT = RESPONSE_COMPLETE_MISS;
+                    }
+                    else if(board[x][y] == RESPONSE_DISASTER)
+                    {
+                        Log.i(TAG, "Current move was a DISASTER");
+                        messageMoveStatus = "Move Status: DISASTER\n";
+                        RESPONSE_CURRENT = RESPONSE_DISASTER;
+                    }
+                    board[x][y] = RESPONSE_DISASTER; //set to already clicked
+
+                    if(messageMoveStatus.equals("NULL"))
+                    {
+                        currentTurn--;
+                    }
+                    final String messageLog = messageTurnPlayer + messageNextMove + messageMoveStatus + "\n";
+                    //depending on the state of the board, set the correct color
+                    mainThread.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            tv_console.setText(messageLog);
+                            text_log = text_log + messageLog;
+                            Log.i(TAG, text_log);
+                            if(iv != null)
+                            {
+                                iv.setImageResource(cellImages.get(RESPONSE_CURRENT));
+                            }
+                            else
+                            {
+                                Log.i(TAG, "Something went wrong when setting image");
+                            }
+                        }
+                    });
+
+                    //If gopher hasn't been spotted yet, change the cell back to default
+                    mainThread.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (iv != null)
+                            {
+                                iv.setImageResource(cellImages.get(RESPONSE_NULL));
+                                Log.i(TAG, "Something went wrong when setting image to default");
+                            }
+                        }
+                    }, 1500);
+                    currentTurn++;
                 }
             });
 
-            //If gopher hasn't been spotted yet, change the cell back to default
-            mainThread.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    iv.setImageResource(cellImages.get(RESPONSE_NULL));
-                }
-            }, 1500);
-            currentTurn++;
         }
 
         @Override
@@ -741,15 +776,17 @@ public class MainActivity extends AppCompatActivity {
                                     try{ Thread.sleep(MOVE_DELAY); }
                                     catch (InterruptedException e) { System.out.println("Thread interrupted!"); }
 
+                                    Message m;
                                     if(!WINNER_FOUND) //if winner hasnt been found yet, make the next move
                                     {
                                         makeMove();
                                         printBoard();
-                                    }
+                                        m = mainThread.obtainMessage(UI_UPDATE_LOG);
+                                        mainThread.sendMessage(m);
 
-                                    Message m;
-                                    m = handlerThread.obtainMessage(UI_CHECK_WINNER); //after making the move, check to see if theres a winner
-                                    handlerThread.sendMessage(m);
+                                        m = handlerThread.obtainMessage(UI_CHECK_WINNER); //after making the move, check to see if theres a winner
+                                        handlerThread.sendMessage(m);
+                                    }
                                 }
                             });
                             break;
